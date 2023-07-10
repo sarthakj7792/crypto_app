@@ -1,34 +1,46 @@
 import 'dart:async';
 import 'dart:convert';
+import 'package:crypto_app/modules/crypto_presenter.dart';
 import 'package:flutter/material.dart';
 // ignore: depend_on_referenced_packages
 import 'package:http/http.dart' as http;
+
+import 'data/crypto_data.dart';
 
 class HomePage extends StatefulWidget {
   @override
   State<HomePage> createState() => _HomePageState();
 }
 
-class _HomePageState extends State<HomePage> {
-  late List<dynamic> currencies = [];
+class _HomePageState extends State<HomePage> implements CryptoListViewContract {
+  late CryptoListPresenter _presenter;
+  late List<Crypto> currencies = [];
+  late bool _isLoading;
+
   final List<MaterialColor> _colors = [Colors.blue, Colors.indigo, Colors.red];
+
+  _HomePageState() {
+    _presenter = CryptoListPresenter(this);
+  }
 
   @override
   void initState() {
     super.initState();
-    getCurrencies().then((List<dynamic> currencies) {
-      setState(() {
-        this.currencies = currencies;
-      });
-    });
+    _isLoading = true;
+    _presenter.loadCurrencies();
+    // getCurrencies().then((List<Crypto> currencies) {
+    //   setState(() {
+    //     this.currencies = currencies;
+    //   });
+    // });
     //start periodic timer
-    Timer.periodic(Duration(seconds: 30), (timer) {
-      getCurrencies().then((value) {
-        setState(() {
-          currencies = value;
-        });
-      });
-    });
+    // Timer.periodic(Duration(seconds: 30), (timer) {
+    //   getCurrencies().then((value) {
+    //     setState(() {
+    //       currencies = value;
+    //     });
+    //   });
+    // });
   }
 
   Future<List<dynamic>> getCurrencies() async {
@@ -46,7 +58,9 @@ class _HomePageState extends State<HomePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Crypto App')),
-      body: _cryptoWidget(),
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : _cryptoWidget(),
     );
   }
 
@@ -56,7 +70,7 @@ class _HomePageState extends State<HomePage> {
         Expanded(
           child: ListView.builder(
             itemBuilder: (context, index) {
-              final Map<dynamic, dynamic> currency = currencies[index];
+              final Crypto currency = currencies[index];
               final MaterialColor color = _colors[index % _colors.length];
               return _getListItem(currency, color);
             },
@@ -67,20 +81,20 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  ListTile _getListItem(Map<dynamic, dynamic> currency, MaterialColor color) {
-    final Map<String, dynamic> quote = currency['quote']['INR'];
+  ListTile _getListItem(Crypto currency, MaterialColor color) {
+    // final Crypto quote = currency;
     return ListTile(
       leading: CircleAvatar(
         backgroundColor: color,
-        child: Text("${currency['name'][0]}"),
+        child: Text(currency.name[0]),
       ),
       title: Text(
-        "${currency["name"]}",
+        currency.name,
         style: const TextStyle(fontWeight: FontWeight.bold),
       ),
       subtitle: _getSubtitleText(
-        quote['price'].toStringAsFixed(2),
-        quote['percent_change_1h'].toString(),
+        currency.priceINR,
+        currency.percentChange1h,
       ),
       // Text(
       //   "Price: ${quote['price'].toStringAsFixed(2)} INR",
@@ -116,5 +130,18 @@ class _HomePageState extends State<HomePage> {
         ],
       ),
     );
+  }
+
+  @override
+  void onLoadCryptoComplete(List<Crypto> items) {
+    setState(() {
+      currencies = items;
+      _isLoading = false;
+    });
+  }
+
+  @override
+  void onLoadCryptoError() {
+    // TODO: implement onLoadCryptoError
   }
 }

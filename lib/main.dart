@@ -1,8 +1,12 @@
+import 'package:crypto_app/dependency_injection.dart';
 import 'package:flutter/material.dart';
 
 import 'homepage.dart';
 
-void main() => runApp(const MyApp());
+Future<void> main() async {
+  Injector.configure(Flavor.PROD);
+  runApp(const MyApp());
+}
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
